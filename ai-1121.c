@@ -7,7 +7,7 @@
 
 #define input_size 4096
 #define output_size 4
-#define data_number 360
+#define data_number 3600
 #define test_number 120
 
 char *image_path[data_number];
@@ -231,41 +231,18 @@ void assign_weight(Network* _network,int _p_layer, int _row, int _col ,float _va
 }
 
 
-// 함수: 정규분포 난수를 생성 (박스-뮬러 변환)
-float generate_normal_random(float mean, float stddev) {
-    float u1, u2;
-    float pi = 3.1415926535;
-
-    // u1 값을 0이 아닌 (0, 1)로 제한
-    do {
-        u1 = (float)rand() / RAND_MAX;
-    } while (u1 <= 0.0);
-
-    u2 = (float)rand() / RAND_MAX;
-
-    // 박스-뮬러 변환
-    float z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * pi * u2);
-    return z0 * stddev + mean;
-}
 
 
 void set_weight(Network* _network) {
     srand(time(0));
     for (int i = 0; i < _network->layer_number - 1; i++) {
-        // 유효성 검사 추가
-        if (_network->layer[i].node_number <= 0) {
-            printf("Error: Invalid node number\n");
-            exit(1);
-        }
-
-        // 표준편차 계산 (He Initialization)
-        float stddev = sqrt(2.0 / (float)_network->layer[i].node_number);
-
+      
+  
         for (int j = 0; j < _network->layer[i].node_number; j++) {
             for (int k = 0; k < _network->layer[i].weight_number; k++) {
-                // 정규분포 난수 생성
-                float random_value = generate_normal_random(0.0, stddev);
-                assign_weight(_network, i, k, j, random_value/10.0);
+                float random_value = (float)rand()/(float)RAND_MAX;
+           
+                assign_weight(_network, i, k, j, random_value);
             }
         }
     }
@@ -468,15 +445,20 @@ int main(){
     Network network1;
     init_network( &network1 );
     set_weight( &network1 );
-    network1.learning_rate = 0.0005;
+    network1.learning_rate = 0.0001;
 
 
     epoch(&network1,10);
 
-    
+
 
     printf("end\n");
 
+    for(int i = 0 ; i<4; i++){
+
+        printf("%f ",network1.layer[network1.layer_number-1].node[i][0]);
+        
+    }
     
 
 

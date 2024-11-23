@@ -4,6 +4,8 @@ echo "*.jpg" >> .gitignore
 echo "*.jpeg" >> .gitignore
 echo "*.gif" >> .gitignore
 *test
+*test*
+
 test*
 *.jpg
 
