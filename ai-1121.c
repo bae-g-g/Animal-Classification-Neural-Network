@@ -7,8 +7,8 @@
 
 #define input_size 4096
 #define output_size 4
-#define data_number 3600
-#define test_number 120
+#define data_number 360
+#define test_number 40
 
 char *image_path[data_number];
 unsigned char *img_temp[data_number];
@@ -236,11 +236,12 @@ void assign_weight(Network* _network,int _p_layer, int _row, int _col ,float _va
 void set_weight(Network* _network) {
     srand(time(0));
     for (int i = 0; i < _network->layer_number - 1; i++) {
-      
-  
+        
+        float limit = sqrtf(1.0f / (float)_network->layer[i].node_number);
+       
         for (int j = 0; j < _network->layer[i].node_number; j++) {
             for (int k = 0; k < _network->layer[i].weight_number; k++) {
-                float random_value = (float)rand()/(float)RAND_MAX;
+                float random_value =((float)rand() / RAND_MAX) * 2 * limit - limit;
            
                 assign_weight(_network, i, k, j, random_value);
             }
@@ -412,7 +413,7 @@ void test(Network* _network){
     // printf("error mean = %f \n",(class_error[0]+class_error[1]+class_error[2]+class_error[3]) / (float)test_number );
     // printf("---\n");
     for(int i = 0 ; i < output_size; i++ ){
-        printf("%f ",(float)class_ans[i]/ ((float)test_number/(float)output_size)*100.0 );
+        printf("%f ",( (float)class_ans[i]/ ((float)test_number/(float)output_size))*100.0);
     }
     // printf("---\n");
     // for(int i = 0 ; i < output_size; i++ ){
@@ -445,7 +446,7 @@ int main(){
     Network network1;
     init_network( &network1 );
     set_weight( &network1 );
-    network1.learning_rate = 0.0001;
+    network1.learning_rate = 0.01;
 
 
     epoch(&network1,10);
@@ -453,12 +454,20 @@ int main(){
 
 
     printf("end\n");
-
-    for(int i = 0 ; i<4; i++){
-
+    
+    for(int k=0 ;k<4; k++){
+        input(&network1,k);
+        forward_propagation(&network1);
+        for(int i = 0 ; i<4; i++){
+        
         printf("%f ",network1.layer[network1.layer_number-1].node[i][0]);
         
     }
+    printf("\n");
+
+    }
+
+    
     
 
 
