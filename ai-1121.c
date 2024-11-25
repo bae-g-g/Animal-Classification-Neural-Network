@@ -7,14 +7,14 @@
 
 #define input_size 4096
 #define output_size 4
-#define data_number 360
-#define test_number 40
+#define data_number 1200
+#define test_number 120
 
 char *image_path[data_number];
 unsigned char *img_temp[data_number];
 float *img[data_number];
 float target[data_number][output_size]={0};
-char *data_class[output_size]={"cat","dog","tiger","hyena"};
+char *data_class[output_size]={"cat","hyena","tiger","dog"};
 
 
 
@@ -271,6 +271,24 @@ void apply_sigmoid( Network* _network, int _p_layer){
     
 }
 
+void apply_softmax(Network* _network, int _p_layer){
+    
+    float sum = 0.0;
+
+    for(int i = 0 ; i< _network->layer[_p_layer].node_number; i++ ){
+    
+        _network->layer[_p_layer].node[i][0] = exp( _network->layer[_p_layer].node[i][0] );
+        sum += _network->layer[_p_layer].node[i][0];
+    }
+
+    for(int i = 0 ; i< _network->layer[_p_layer].node_number; i++ ){
+        _network->layer[_p_layer].node[i][0] = _network->layer[_p_layer].node[i][0]/sum;
+    }
+    
+
+
+}
+
 
 void forward_propagation( Network* _network  ){
  
@@ -280,8 +298,16 @@ void forward_propagation( Network* _network  ){
         // free_matrix(_network->layer[i+1].node,_network->layer[i+1].node_number,1);
         
         _network->layer[i+1].node = multiply_matrix(_network->layer[i].weight,_network->layer[i].node,_network->layer[i].weight_number,_network->layer[i].node_number,_network->layer[i].node_number,1);    
+        
+        
+        if(i == _network -> layer_number-2){
 
-        apply_sigmoid(_network, i+1);
+             apply_softmax(_network, i+1);
+        }
+        else{
+
+            apply_sigmoid(_network, i+1);
+        }
         
     }
 
@@ -455,20 +481,29 @@ int main(){
 
     printf("end\n");
     
-    for(int k=0 ;k<4; k++){
-        input(&network1,k);
+    float test_mean[output_size][output_size] = { 0 };
+
+
+    for(int i=data_number-test_number; i<data_number; i++){
+        input(&network1,i);
         forward_propagation(&network1);
-        for(int i = 0 ; i<4; i++){
-        
-        printf("%f ",network1.layer[network1.layer_number-1].node[i][0]);
-        
-    }
-    printf("\n");
 
+        for(int j = 0 ; j<output_size; j++){
+        
+            test_mean[i%output_size][j] += network1.layer[network1.layer_number-1].node[j][0]/(float)(test_number/output_size);
+        }
     }
 
+    for(int i= 0; i< output_size; i++){
+        printf("%s = ",data_class[i]);
+        for(int j = 0 ; j<output_size; j++){
+           printf("%f " ,test_mean[i][j]); 
+        }
+        printf("\n");
+    }
     
-    
+
+  
 
 
 }  
