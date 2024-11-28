@@ -7,7 +7,7 @@
 
 #define input_size 4096
 #define output_size 4
-#define data_number 1200
+#define data_number 3600
 #define test_number 120
 
 char *image_path[data_number];
@@ -214,6 +214,7 @@ void init_weight(Network* _network){
 
 }
 
+
 void init_network( Network* _network ){
 
     init_layer( _network );
@@ -242,7 +243,7 @@ void set_weight(Network* _network) {
         for (int j = 0; j < _network->layer[i].node_number; j++) {
             for (int k = 0; k < _network->layer[i].weight_number; k++) {
                 float random_value =((float)rand() / RAND_MAX) * 2 * limit - limit;
-           
+
                 assign_weight(_network, i, k, j, random_value);
             }
         }
@@ -261,15 +262,37 @@ float sigmoid_function( float x ){
     
 }
 
+float leakyReLu_function( float x ){ 
+    
+    if(x>0.0){
+
+        return x;
+    }
+    else{
+        return 0.01*x;
+    }
+
+
+}
+
 
 void apply_sigmoid( Network* _network, int _p_layer){
 
     for(int i = 0 ; i< _network->layer[_p_layer].node_number; i++ ){
         _network->layer[_p_layer].node[i][0] = sigmoid_function( _network->layer[_p_layer].node[i][0] );
     }
-    
-    
+   
 }
+
+void apply_ReLu( Network* _network, int _p_layer){
+
+    for(int i = 0 ; i< _network->layer[_p_layer].node_number; i++ ){
+        _network->layer[_p_layer].node[i][0] = leakyReLu_function( _network->layer[_p_layer].node[i][0] );
+    }
+   
+}
+
+
 
 void apply_softmax(Network* _network, int _p_layer){
     
@@ -295,7 +318,6 @@ void forward_propagation( Network* _network  ){
   
     for(int i = 0 ; i < _network -> layer_number-1 ; i++){
 
-        // free_matrix(_network->layer[i+1].node,_network->layer[i+1].node_number,1);
         
         _network->layer[i+1].node = multiply_matrix(_network->layer[i].weight,_network->layer[i].node,_network->layer[i].weight_number,_network->layer[i].node_number,_network->layer[i].node_number,1);    
         
@@ -306,7 +328,7 @@ void forward_propagation( Network* _network  ){
         }
         else{
 
-            apply_sigmoid(_network, i+1);
+            apply_ReLu(_network, i+1);
         }
         
     }
@@ -319,12 +341,12 @@ void forward_propagation( Network* _network  ){
 void error_update( Network* _network,int data_num){
 
 
- _network -> layer[_network->layer_number -1].error = create_matrix( _network-> layer[ _network->layer_number - 1 ].node_number , 1 );
+     _network -> layer[_network->layer_number -1].error = create_matrix( _network-> layer[ _network->layer_number - 1 ].node_number , 1 );
 
-for(int i = 0; i<_network-> layer[ _network->layer_number - 1 ].node_number; i++){ // 출력단의 노드만큼 반복하면서 각 노드에 에러값 초기화 해주기
+    for(int i = 0; i<_network-> layer[ _network->layer_number - 1 ].node_number; i++){ // 출력단의 노드만큼 반복하면서 각 노드에 에러값 초기화 해주기
 
 
-    _network -> layer[_network->layer_number -1].error[i][0] =  (  _network-> layer[_network->layer_number -1].node[i][0]-target[data_num][i] ); 
+    _network -> layer[_network->layer_number -1].error[i][0] =  ( _network-> layer[_network->layer_number -1].node[i][0]  -  target[data_num][i]   ); 
 
 }
 
@@ -333,7 +355,7 @@ for(int i = _network->layer_number -2; i >= 1; i-- ){
 
     float** _transpose_matrix = transpose_matrix(_network->layer[i].weight,_network->layer[i].weight_number,_network->layer[i].node_number );
     
-     _network -> layer[i].error = multiply_matrix( _transpose_matrix,_network -> layer[i+1].error,_network->layer[i].node_number,_network->layer[i].weight_number,_network-> layer[ i+1 ].node_number,1);
+    _network -> layer[i].error = multiply_matrix( _transpose_matrix,_network -> layer[i+1].error,_network->layer[i].node_number,_network->layer[i].weight_number,_network-> layer[ i+1 ].node_number,1);
     free_matrix(_transpose_matrix,_network->layer[i].node_number,_network->layer[i].weight_number); //전치행렬은 더이상 필요없으니 해제
 
 }
@@ -347,15 +369,31 @@ float sigmoid_prime(float x){
 
 }
 
+float ReLu_prime(float x){
+    
+    if(x>0.0){
+        return 1.0;
+    }
+    else{
+        return 0.01;
+    }
+        
+}
+
 
 void learn( Network* _network, int _p_layer, int _p_weight, int _p_node ){
 
-float l_error           =   _network->layer[_p_layer+1].error[_p_weight][0];
-float l_sigmoid_prime   =    sigmoid_prime(_network -> layer[_p_layer+1].node[_p_weight][0]);
-float l_node            =   _network -> layer[_p_layer].node[_p_node][0];
+    float l_error           =   _network->layer[_p_layer+1].error[_p_weight][0];
+    float l_prime           =    ReLu_prime(_network -> layer[_p_layer+1].node[_p_weight][0]);
+    float l_node            =   _network -> layer[_p_layer].node[_p_node][0];
 
-_network -> layer[_p_layer].weight[ _p_weight ][ _p_node ] -=  _network -> learning_rate * ( l_error * l_sigmoid_prime * l_node);
-
+    if(_p_node%4==3){
+        _network -> layer[_p_layer].weight[ _p_weight ][ _p_node ] -=  (_network -> learning_rate*1.25 )* ( l_error * l_prime * l_node);
+    }  
+    else{
+        _network -> layer[_p_layer].weight[ _p_weight ][ _p_node ] -=  _network -> learning_rate * ( l_error * l_prime * l_node);
+    }
+    
 }
 
 
@@ -455,6 +493,11 @@ void epoch(Network* _network,int num){
     printf("\n");
     for(int i = 0 ; i<num; i++){
     
+   
+    if(num%5 == 0){
+        _network->learning_rate *= 0.5*_network->learning_rate;
+    }
+    
     printf("%d ",i+1);
     train( _network );    
     test( _network );
@@ -472,10 +515,10 @@ int main(){
     Network network1;
     init_network( &network1 );
     set_weight( &network1 );
-    network1.learning_rate = 0.01;
+    network1.learning_rate = 0.001;
 
 
-    epoch(&network1,10);
+    epoch(&network1,20);
 
 
 
@@ -497,13 +540,9 @@ int main(){
     for(int i= 0; i< output_size; i++){
         printf("%s = ",data_class[i]);
         for(int j = 0 ; j<output_size; j++){
-           printf("%f " ,test_mean[i][j]); 
+           printf("%f " ,test_mean[i][j]*100.0); 
         }
         printf("\n");
     }
     
-
-  
-
-
 }  
